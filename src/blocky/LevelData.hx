@@ -55,7 +55,7 @@ class LevelData
                 var block = toBlockType(code);
                 switch (block) {
                     case Monster, Player:
-                        var mob = addMobile(block, x, y);
+                        var mob = addMobile(block, x+0.5, y+0.5);
                         if (block == Player) {
                             player = mob;
                         }
@@ -102,6 +102,16 @@ class LevelData
         return mob;
     }
 
+    public static function toPriority (block :BlockType) :Float
+    {
+        switch (block) {
+            case Space: return 0;
+            case Wall: return 1;
+            case Player: return 1000;
+            case Monster: return 10;
+        }
+    }
+
     private static function toBlockType (code :Int) :BlockType
     {
         switch (code) {
@@ -112,15 +122,5 @@ class LevelData
         }
         Assert.fail("Unrecognized block", ["code", code]);
         return null;
-    }
-
-    private static function toPriority (block :BlockType) :Float
-    {
-        switch (block) {
-            case Space: return 0;
-            case Wall: return 1;
-            case Player: return 1000;
-            case Monster: return 10;
-        }
     }
 }

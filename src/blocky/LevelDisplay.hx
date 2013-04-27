@@ -2,6 +2,7 @@ package blocky;
 
 import flambe.Component;
 import flambe.Entity;
+import flambe.System;
 import flambe.display.FillSprite;
 
 import blocky.LevelData;
@@ -33,6 +34,9 @@ class LevelDisplay extends Component
 
     override public function onUpdate (dt :Float)
     {
+        _data.player.x = System.pointer.x/20;
+        _data.player.y = System.pointer.y/20;
+
         var snapshot = createSnapshot();
 
         var ii = 0, ll = MAX_PIXELS;
@@ -50,19 +54,49 @@ class LevelDisplay extends Component
 
     private function createSnapshot () :Array<PixelPriority>
     {
+        var eyeX = _data.player.x;
+        var eyeY = _data.player.y;
+
         var list = [];
         for (y in 0..._data.height) {
             for (x in 0..._data.width) {
                 var priority = _data.getTerrainPriority(x, y);
+
+                var dx = eyeX - x;
+                var dy = eyeY - y;
+                var distance = Math.sqrt(dx*dx + dy*dy);
+                priority *= 5*Math.max(0, VIEW_DISTANCE-distance);
+
+                if (priority > 0) {
+                    var idx = findInsertIdx(list, priority);
+                    if (idx < MAX_PIXELS) {
+                        list.insert(idx, new PixelPriority(Terrain(x, y), priority));
+                        if (list.length > MAX_PIXELS) {
+                            list.splice(-1, 1); // Trim the excess
+                        }
+                    }
+                }
+            }
+        }
+
+        for (mob in _data.mobs) {
+            var priority = LevelData.toPriority(mob.type);
+            var dx = eyeX - mob.x;
+            var dy = eyeY - mob.y;
+            var distance = Math.sqrt(dx*dx + dy*dy);
+            priority *= 5*Math.max(0, VIEW_DISTANCE-distance);
+
+            if (priority > 0) {
                 var idx = findInsertIdx(list, priority);
                 if (idx < MAX_PIXELS) {
-                    list.insert(idx, new PixelPriority(Terrain(x, y), priority));
+                    list.insert(idx, new PixelPriority(Mob(mob), priority));
                     if (list.length > MAX_PIXELS) {
                         list.splice(-1, 1); // Trim the excess
                     }
                 }
             }
         }
+
         return list;
     }
 
@@ -127,7 +161,8 @@ private class PixelDisplay
                 sprite.color = 0x000000;
                 sprite.setXY(x*SCALE, y*SCALE);
             case Mob(mob):
-                sprite.setXY(mob.x*SCALE, mob.y*SCALE);
+                sprite.color = 0xff0000;
+                sprite.setXY(mob.x*SCALE - 0.5*SCALE, mob.y*SCALE - 0.5*SCALE);
             }
         } else {
             sprite.visible = false;
