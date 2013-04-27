@@ -19,5 +19,5 @@ def build(ctx):
     # Kick off a build with the desired platforms
     ctx(features="flambe",
         main="blocky.BlockyMain",
-        platforms=platforms,
-        flags="-D flambe_enable_webgl")
+        # flags="-D flambe_enable_webgl",
+        platforms=platforms)
