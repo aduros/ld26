@@ -1,0 +1,39 @@
+<!doctype html>
+<html>
+<head>
+  <title>Flambe App</title>
+  <style>
+    body {
+      text-align: center;
+      margin: 0;
+      background: black;
+      color: #404040;
+      font-family: sans-serif;
+      font-size: 10pt;
+    }
+    a {
+      color: #F88113;
+      text-decoration: none;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+
+    #content {
+      width: 640px;
+      height: 480px;
+      margin: 60px auto 20px auto;
+      box-shadow: 0px 4px 16px -4px #333;
+    }
+  </style>
+</head>
+<body>
+
+<div id="content"></div>
+<script src="flambe.js"></script>
+<script>
+  flambe.embed(["targets/main-flash.swf", "targets/main-html.js"], "content");
+</script>
+
+</body>
+</html>

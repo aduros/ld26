@@ -24,6 +24,6 @@ class BlockyMain
     private static function onLoad (pack :AssetPack)
     {
         var level = new LevelData(pack, "level1.txt", 20, 7);
-        System.root.add(new LevelDisplay(level));
+        System.root.add(new LevelDisplay(level, 20));
     }
 }
