@@ -20,11 +20,10 @@ class LevelDisplay extends Component
 
     public var gameOver (default, null) :Signal1<Bool>;
 
-    public function new (gameCtx :GameContext, data :LevelData, showIntro :Bool)
+    public function new (gameCtx :GameContext, data :LevelData)
     {
         _gameCtx = gameCtx;
         _level = data;
-        _showIntro = showIntro;
         _pixelCount = new AnimatedFloat(0);
         gameOver = new Signal1();
     }
@@ -75,62 +74,18 @@ class LevelDisplay extends Component
             ]));
         }).once();
 
-        // onUpdate(0);
-        // script.run(new Sequence([
-        // ]));
-
-        _pixelCount._ = _gameCtx.maxPixels;
-
-        if (_showIntro) {
-            var ii = 0, ll = _pixels.length;
-            while (ii < ll) {
-                var pixel = _pixels[ii];
-                pixel.sprite.color = 0;
-                pixel.sprite.visible = true;
-                pixel.sprite.setXY(ii*(PixelDisplay.SCALE+5) + 10, PixelDisplay.SCALE+20);
-                ++ii;
-            }
-
-            var hudCoins = [];
-            for (ii in 0..._gameCtx.earnedCoins.length) {
-                var size = PixelDisplay.SCALE-2*PixelDisplay.INSET;
-                var coin = new Entity()
-                    .add(new FillSprite(0xffcc00, size, size)
-                        .setXY(ii*(PixelDisplay.SCALE+5) + 10, 10));
-                worldEntity.addChild(coin);
-                hudCoins.push(coin);
-            }
-
-            _paused = true;
-            script.run(new Sequence([
-                new Delay(2),
-                new CallFunction(function () {
-                    for (coin in hudCoins) {
-                        coin.dispose();
-                    }
-                    _paused = false; // HACK
-                    onUpdate(0);
-                    _paused = true;
-                    var ii = 0, ll = _pixels.length;
-                    while (ii < ll) {
-                        var pixel = _pixels[ii++];
-                        pixel.sprite.x.animate(ii * PixelDisplay.SCALE + 5, pixel.sprite.x._, 0.5);
-                        pixel.sprite.y.animate(5, pixel.sprite.y._, 0.5);
-                    }
-                }),
-                new Delay(0.5),
-                new CallFunction(function () {
-                    _paused = false;
-                }),
-            ]));
-        } else {
-            _world.alpha.animate(0.25, 1, 1);
-            _pixelCount.animateTo(_gameCtx.maxPixels, 1);
+        var hud = new Entity();
+        for (ii in 0..._gameCtx.earnedCoins.length) {
+            var size = PixelDisplay.SCALE-2*PixelDisplay.INSET;
+            var coin = new Entity()
+                .add(new FillSprite(0xffcc00, size, size)
+                    .setXY(ii*(PixelDisplay.SCALE+5) + 10, 10));
+            hud.addChild(coin);
         }
+        owner.addChild(hud);
 
-        // disposer.add(System.pointer.down.connect(function (event) {
-        //     System.stage.requestFullscreen();
-        // }).once());
+        _world.alpha.animate(0.25, 1, 1);
+        _pixelCount.animateTo(_gameCtx.maxPixels, 1);
     }
 
     override public function onRemoved ()
@@ -269,7 +224,6 @@ class LevelDisplay extends Component
 
     private var _gameCtx :GameContext;
     private var _level :LevelData;
-    private var _showIntro :Bool;
 
     private var _world :Sprite;
     private var _pixels :Array<PixelDisplay>;

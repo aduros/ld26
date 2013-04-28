@@ -19,22 +19,22 @@ class BlockyMain
 
         var loader = System.loadAssetPack(Manifest.build("bootstrap"));
         loader.get(function (pack) {
-            restart(new GameContext(pack), true);
+            restart(new GameContext(pack));
         });
     }
 
-    private static function restart (gameCtx :GameContext, showIntro :Bool)
+    private static function restart (gameCtx :GameContext)
     {
         var level = new LevelData(gameCtx, "level1.txt");
 
         var game = new Entity();
-        var display = new LevelDisplay(gameCtx, level, showIntro);
+        var display = new LevelDisplay(gameCtx, level);
         display.gameOver.connect(function (won) {
             game.dispose();
             if (won) {
                 gameCtx.maxPixels -= 1;
             }
-            restart(gameCtx, won);
+            restart(gameCtx);
         });
         game.add(display);
 
