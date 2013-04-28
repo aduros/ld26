@@ -297,7 +297,7 @@ private class PixelDisplay
     private static function getColor (block :BlockType)
     {
         switch (block) {
-            case Wall: return 0x000000;
+            case Wall: return 0x202020;
             case Space: Assert.fail(); return 0;
             case Lava: return 0xff0000;
             case Goomba: return 0x009900;

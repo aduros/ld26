@@ -7,6 +7,7 @@ import flambe.display.ImageSprite;
 import flambe.display.Sprite;
 import flambe.Entity;
 import flambe.System;
+import flambe.Disposer;
 
 class BlockyMain
 {
@@ -19,7 +20,17 @@ class BlockyMain
 
         var loader = System.loadAssetPack(Manifest.build("bootstrap"));
         loader.get(function (pack) {
-            restart(new GameContext(pack));
+            var gameCtx = new GameContext(pack, System.root);
+            var introScene = TextScene.show(gameCtx, "There Are Only 14 Squares", "Arrow keys\nFind all 10 coins");
+            var disposer = new Disposer();
+            introScene.add(disposer); // FIXME(bruno): Disposer fails if added to component after setup!!
+            disposer.connect1(System.keyboard.down, function (event) {
+                switch (event.key) {
+                case Up, Left, Down, Right:
+                    GameScene.show(gameCtx);
+                default:
+                }
+            });
         });
     }
 
