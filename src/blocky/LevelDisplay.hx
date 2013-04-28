@@ -4,6 +4,7 @@ import flambe.Component;
 import flambe.Entity;
 import flambe.System;
 import flambe.display.FillSprite;
+import flambe.Disposer;
 
 import blocky.LevelData;
 
@@ -25,6 +26,15 @@ class LevelDisplay extends Component
             _pixels.push(pixel);
             owner.addChild(pixel.entity);
         }
+
+        var disposer = new Disposer();
+        owner.add(disposer);
+
+        disposer.connect1(System.keyboard.down, function (event) {
+            if (event.key == Up && _data.player.grounded) {
+                _data.player.velY = -8;
+            }
+        });
     }
 
     override public function onRemoved ()
@@ -34,8 +44,14 @@ class LevelDisplay extends Component
 
     override public function onUpdate (dt :Float)
     {
-        _data.player.x = System.pointer.x/20;
-        _data.player.y = System.pointer.y/20;
+        if (System.keyboard.isDown(Left)) {
+            _data.player.velX = -5;
+        } else if (System.keyboard.isDown(Right)) {
+            _data.player.velX = 5;
+        } else {
+            _data.player.velX = 0;
+        }
+        _data.update(dt);
 
         var snapshot = createSnapshot();
 
