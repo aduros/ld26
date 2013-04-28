@@ -9,7 +9,7 @@ class GameContext
 {
     public var pack (default, null) :AssetPack;
     public var earnedCoins (default, null) :Array<Int>;
-    public var maxPixels :Int = 14;
+    public var maxPixels :Int = 13;
 
     public var root :Entity;
 

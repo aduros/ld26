@@ -21,7 +21,7 @@ class BlockyMain
         var loader = System.loadAssetPack(Manifest.build("bootstrap"));
         loader.get(function (pack) {
             var gameCtx = new GameContext(pack, System.root);
-            var introScene = TextScene.show(gameCtx, "There Are Only 14 Squares", "Arrow keys\nFind all 10 coins");
+            var introScene = TextScene.show(gameCtx, "There Are Only 13 Squares", "Arrow keys\nFind all 10 coins");
             var disposer = new Disposer();
             introScene.add(disposer); // FIXME(bruno): Disposer fails if added to component after setup!!
             disposer.connect1(System.keyboard.down, function (event) {
