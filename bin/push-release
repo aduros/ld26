@@ -1,0 +1,11 @@
+#!/bin/bash -e
+
+# Build a fresh release build
+rm -rf deploy
+wafl configure install
+
+# Deploy it
+rsync -avz --delete deploy/web/ catdap:web/13-squares
+
+# Restore debug for development
+wafl configure --debug
