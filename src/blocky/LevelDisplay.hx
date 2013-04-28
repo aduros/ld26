@@ -87,15 +87,16 @@ class LevelDisplay extends Component
                 var pixel = _pixels[ii];
                 pixel.sprite.color = 0;
                 pixel.sprite.visible = true;
-                pixel.sprite.setXY(ii*(PixelDisplay.SCALE+5) + 10, 10);
+                pixel.sprite.setXY(ii*(PixelDisplay.SCALE+5) + 10, PixelDisplay.SCALE+20);
                 ++ii;
             }
 
             var hudCoins = [];
             for (ii in 0..._gameCtx.earnedCoins.length) {
+                var size = PixelDisplay.SCALE-2*PixelDisplay.INSET;
                 var coin = new Entity()
-                    .add(new FillSprite(0xffcc00, PixelDisplay.SCALE, PixelDisplay.SCALE)
-                        .setXY(ii*(PixelDisplay.SCALE+5) + 10, PixelDisplay.SCALE+20));
+                    .add(new FillSprite(0xffcc00, size, size)
+                        .setXY(ii*(PixelDisplay.SCALE+5) + 10, 10));
                 worldEntity.addChild(coin);
                 hudCoins.push(coin);
             }
@@ -188,7 +189,7 @@ class LevelDisplay extends Component
         var stageW = System.stage.width, stageH = System.stage.height;
         var viewportX = _level.player.x*PixelDisplay.SCALE - stageW/2;
         var viewportY = _level.player.y*PixelDisplay.SCALE - stageH/2;
-        var minX = stageW - _level.width*PixelDisplay.SCALE;
+        var minX = _level.width*PixelDisplay.SCALE - stageW;
         var minY = stageH - _level.height*PixelDisplay.SCALE;
         _world.x._ = FMath.clamp(-viewportX, -minX, 0);
         _world.y._ = FMath.clamp(-viewportY, -minY, 0);
@@ -212,7 +213,7 @@ class LevelDisplay extends Component
                 var dx = eyeX - x;
                 var dy = eyeY - y;
                 var distance = Math.sqrt(dx*dx + dy*dy);
-                priority *= 5*Math.max(0, VIEW_DISTANCE-distance);
+                priority *= 10*Math.max(0, VIEW_DISTANCE-distance);
 
                 if (priority > 0) {
                     var idx = findInsertIdx(list, priority);
@@ -231,7 +232,7 @@ class LevelDisplay extends Component
             var dx = eyeX - mob.x;
             var dy = eyeY - mob.y;
             var distance = Math.sqrt(dx*dx + dy*dy);
-            priority *= 5*Math.max(0, VIEW_DISTANCE-distance);
+            priority *= 10*Math.max(0, VIEW_DISTANCE-distance);
 
             if (priority > 0) {
                 var idx = findInsertIdx(list, priority);
@@ -296,7 +297,8 @@ private class PixelPriority
 
 private class PixelDisplay
 {
-    public static inline var SCALE = 20;
+    public static inline var SCALE = 40;
+    public static inline var INSET = 1;
 
     public var type (get, set) :PixelType;
     public var entity :Entity;
@@ -304,7 +306,8 @@ private class PixelDisplay
 
     public function new (level :LevelData)
     {
-        sprite = new FillSprite(0x000000, SCALE, SCALE);
+        sprite = new FillSprite(0x000000, SCALE-2*INSET, SCALE-2*INSET);
+        sprite.setAnchor(-INSET, -INSET);
         entity = new Entity().add(sprite);
         _level = level;
         set_type(null);

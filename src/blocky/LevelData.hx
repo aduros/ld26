@@ -87,15 +87,15 @@ class LevelData
         }
         height = y;
 
-        var ADJACENCY_PRIORITY = -0.25;
+        var ADJACENCY_PRIORITY = 0.25;
         terrainPriority = [];
         for (y in 0...height) {
             for (x in 0...width) {
                 var priority = toPriority(getTerrain(x, y));
-                if (x > 0) priority += ADJACENCY_PRIORITY*toPriority(getTerrain(x-1, y));
-                if (x < width-1) priority += ADJACENCY_PRIORITY*toPriority(getTerrain(x+1, y));
-                if (y > 0) priority += ADJACENCY_PRIORITY*toPriority(getTerrain(x, y-1));
-                if (y < height-1) priority += ADJACENCY_PRIORITY*toPriority(getTerrain(x, y+1));
+                if (x > 0) priority *= 1 - ADJACENCY_PRIORITY*toPriority(getTerrain(x-1, y));
+                if (x < width-1) priority *= 1 - ADJACENCY_PRIORITY*toPriority(getTerrain(x+1, y));
+                if (y > 0) priority *= 1 - ADJACENCY_PRIORITY*toPriority(getTerrain(x, y-1));
+                if (y < height-1) priority *= 1 - ADJACENCY_PRIORITY*toPriority(getTerrain(x, y+1));
                 terrainPriority[width*y + x] = priority;
             }
         }
@@ -248,7 +248,8 @@ class LevelData
             case Space: return 0;
             case Wall: return 1;
             case Player: return 1000;
-            case Lava, Goomba, Coin: return 2;
+            case Lava: return 1;
+            case Goomba, Coin: return 2;
         }
     }
 
@@ -258,7 +259,7 @@ class LevelData
             case ".".code: return Space;
             case "X".code: return Wall;
             case "@".code: return Player;
-            case "1".code: return Lava;
+            case "~".code: return Lava;
             case "2".code: return Goomba;
             case "$".code: return Coin;
         }
