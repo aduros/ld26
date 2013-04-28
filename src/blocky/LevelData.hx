@@ -135,7 +135,7 @@ class LevelData
                 }
             }
 
-            if (mob.type != Coin) {
+            if (mob.type != Coin && mob.type != Lava) {
                 mob.velY += dt*GRAVITY;
                 if (mob.velY > TERMINAL_VELOCITY) {
                     mob.velY = TERMINAL_VELOCITY;
@@ -240,6 +240,13 @@ class LevelData
         }
         mobs.push(mob);
         return mob;
+    }
+
+    public function jump ()
+    {
+        if (player.grounded) {
+            player.velY = -(4 + 0.6*_gameCtx.earnedCoins.length);
+        }
     }
 
     public static function toPriority (block :BlockType) :Float

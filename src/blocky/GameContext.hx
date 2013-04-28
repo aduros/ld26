@@ -6,7 +6,7 @@ class GameContext
 {
     public var pack (default, null) :AssetPack;
     public var earnedCoins (default, null) :Array<Int>;
-    public var maxPixels :Int = 10;
+    public var maxPixels :Int = 14;
 
     public function new (pack :AssetPack)
     {

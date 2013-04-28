@@ -44,9 +44,17 @@ class LevelDisplay extends Component
         owner.add(disposer);
 
         disposer.connect1(System.keyboard.down, function (event) {
-            if (event.key == Up && _level.player.grounded) {
-                _level.player.velY = -8;
+            if (event.key == Up) {
+                _level.jump();
             }
+            // if (event.key == Number1) {
+            //     _gameCtx.earnedCoins.pop();
+            //     trace("Jump coins: " + _gameCtx.earnedCoins.length);
+            // }
+            // if (event.key == Number2) {
+            //     _gameCtx.earnedCoins.push(-2);
+            //     trace("Jump coins: " + _gameCtx.earnedCoins.length);
+            // }
         });
 
         var script = new Script();
@@ -145,7 +153,7 @@ class LevelDisplay extends Component
         var viewportX = _level.player.x*PixelDisplay.SCALE - stageW/2;
         var viewportY = _level.player.y*PixelDisplay.SCALE - stageH/2;
         var minX = _level.width*PixelDisplay.SCALE - stageW;
-        var minY = stageH - _level.height*PixelDisplay.SCALE;
+        var minY = _level.height*PixelDisplay.SCALE - stageH;
         _world.x._ = FMath.clamp(-viewportX, -minX, 0);
         _world.y._ = FMath.clamp(-viewportY, -minY, 0);
     }
