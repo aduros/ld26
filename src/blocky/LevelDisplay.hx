@@ -4,10 +4,13 @@ import flambe.Component;
 import flambe.Disposer;
 import flambe.Entity;
 import flambe.System;
+import flambe.animation.AnimatedFloat;
 import flambe.display.FillSprite;
 import flambe.display.Sprite;
 import flambe.math.FMath;
 import flambe.util.Assert;
+import flambe.util.Signal1;
+import flambe.script.*;
 
 import blocky.LevelData;
 
@@ -15,10 +18,15 @@ class LevelDisplay extends Component
 {
     public static inline var VIEW_DISTANCE = 10;
 
-    public function new (data :LevelData, maxPixels :Int)
+    public var gameOver (default, null) :Signal1<Bool>;
+
+    public function new (gameCtx :GameContext, data :LevelData, showIntro :Bool)
     {
+        _gameCtx = gameCtx;
         _level = data;
-        _maxPixels = maxPixels;
+        _showIntro = showIntro;
+        _pixelCount = new AnimatedFloat(0);
+        gameOver = new Signal1();
     }
 
     override public function onAdded ()
@@ -27,7 +35,7 @@ class LevelDisplay extends Component
         owner.addChild(worldEntity);
 
         _pixels = [];
-        for (ii in 0..._maxPixels) {
+        for (ii in 0..._gameCtx.maxPixels) {
             var pixel = new PixelDisplay(_level);
             _pixels.push(pixel);
             worldEntity.addChild(pixel.entity);
@@ -41,6 +49,84 @@ class LevelDisplay extends Component
                 _level.player.velY = -8;
             }
         });
+
+        var script = new Script();
+        owner.add(script);
+
+        _level.playerAlive.changed.connect(function (alive,_) {
+            if (!alive) {
+                script.run(new Sequence([
+                    new Parallel([
+                        new AnimateTo(_world.alpha, 0, 0.5),
+                        new AnimateTo(_pixelCount, 0, 0.5),
+                    ]),
+                    new CallFunction(function () gameOver.emit(false)),
+                ]));
+            }
+        });
+
+        _level.playerCoined.connect(function (coin) {
+            script.run(new Sequence([
+                new Parallel([
+                    new AnimateTo(_world.alpha, 0, 0.5),
+                    new AnimateTo(_pixelCount, 0, 0.5),
+                ]),
+                new CallFunction(function () gameOver.emit(true)),
+            ]));
+        }).once();
+
+        // onUpdate(0);
+        // script.run(new Sequence([
+        // ]));
+
+        _pixelCount._ = _gameCtx.maxPixels;
+
+        if (_showIntro) {
+            var ii = 0, ll = _pixels.length;
+            while (ii < ll) {
+                var pixel = _pixels[ii];
+                pixel.sprite.color = 0;
+                pixel.sprite.visible = true;
+                pixel.sprite.setXY(ii*(PixelDisplay.SCALE+5) + 10, 10);
+                ++ii;
+            }
+
+            var hudCoins = [];
+            for (ii in 0..._gameCtx.earnedCoins.length) {
+                var coin = new Entity()
+                    .add(new FillSprite(0xffcc00, PixelDisplay.SCALE, PixelDisplay.SCALE)
+                        .setXY(ii*(PixelDisplay.SCALE+5) + 10, PixelDisplay.SCALE+20));
+                worldEntity.addChild(coin);
+                hudCoins.push(coin);
+            }
+
+            _paused = true;
+            script.run(new Sequence([
+                new Delay(2),
+                new CallFunction(function () {
+                    for (coin in hudCoins) {
+                        coin.dispose();
+                    }
+                    _paused = false; // HACK
+                    onUpdate(0);
+                    _paused = true;
+                    var ii = 0, ll = _pixels.length;
+                    while (ii < ll) {
+                        var pixel = _pixels[ii++];
+                        pixel.sprite.x.animate(ii * PixelDisplay.SCALE + 5, pixel.sprite.x._, 0.5);
+                        pixel.sprite.y.animate(5, pixel.sprite.y._, 0.5);
+                    }
+                }),
+                new Delay(0.5),
+                new CallFunction(function () {
+                    _paused = false;
+                }),
+            ]));
+        } else {
+            _world.alpha.animate(0.25, 1, 1);
+            _pixelCount.animateTo(_gameCtx.maxPixels, 1);
+        }
+
         // disposer.add(System.pointer.down.connect(function (event) {
         //     System.stage.requestFullscreen();
         // }).once());
@@ -53,18 +139,23 @@ class LevelDisplay extends Component
 
     override public function onUpdate (dt :Float)
     {
+        if (_paused) {
+            return;
+        }
+
+        _pixelCount.update(dt);
+
         if (System.keyboard.isDown(Left)) {
             _level.player.velX = -5;
         } else if (System.keyboard.isDown(Right)) {
             _level.player.velX = 5;
         } else {
-            _level.player.velX = 0;
+            _level.player.velX *= 0.9;
         }
         _level.update(dt);
 
-        var snapshot = createSnapshot();
+        var snapshot = createSnapshot(Std.int(_pixelCount._));
 
-        var ii = 0, ll = _maxPixels;
         for (item in snapshot) {
             var found = false;
             for (pixel in _pixels) {
@@ -81,7 +172,7 @@ class LevelDisplay extends Component
             }
         }
 
-        var ii = 0, ll = _maxPixels;
+        var ii = 0, ll = _pixels.length;
         while (ii < ll) {
             var display = _pixels[ii];
             if (ii < snapshot.length) {
@@ -103,14 +194,19 @@ class LevelDisplay extends Component
         _world.y._ = FMath.clamp(-viewportY, -minY, 0);
     }
 
-    private function createSnapshot () :Array<PixelPriority>
+    private function createSnapshot (size :Int) :Array<PixelPriority>
     {
         var eyeX = _level.player.x;
         var eyeY = _level.player.y;
 
         var list = [];
-        for (y in 0..._level.height) {
-            for (x in 0..._level.width) {
+        var startX = FMath.max(0, Std.int(eyeX-VIEW_DISTANCE/2));
+        var startY = FMath.max(0, Std.int(eyeY-VIEW_DISTANCE/2));
+        var endX = FMath.min(_level.width, startX+VIEW_DISTANCE);
+        var endY = FMath.min(_level.height, startY+VIEW_DISTANCE);
+
+        for (y in startY...endY) {
+            for (x in startX...endX) {
                 var priority = _level.getTerrainPriority(x, y);
 
                 var dx = eyeX - x;
@@ -120,9 +216,9 @@ class LevelDisplay extends Component
 
                 if (priority > 0) {
                     var idx = findInsertIdx(list, priority);
-                    if (idx < _maxPixels) {
+                    if (idx < size) {
                         list.insert(idx, new PixelPriority(Terrain(x, y), priority));
-                        if (list.length > _maxPixels) {
+                        if (list.length > size) {
                             list.splice(-1, 1); // Trim the excess
                         }
                     }
@@ -139,9 +235,9 @@ class LevelDisplay extends Component
 
             if (priority > 0) {
                 var idx = findInsertIdx(list, priority);
-                if (idx < _maxPixels) {
+                if (idx < size) {
                     list.insert(idx, new PixelPriority(Mob(mob), priority));
-                    if (list.length > _maxPixels) {
+                    if (list.length > size) {
                         list.splice(-1, 1); // Trim the excess
                     }
                 }
@@ -170,11 +266,14 @@ class LevelDisplay extends Component
         return left;
     }
 
+    private var _gameCtx :GameContext;
     private var _level :LevelData;
+    private var _showIntro :Bool;
 
     private var _world :Sprite;
     private var _pixels :Array<PixelDisplay>;
-    private var _maxPixels :Int;
+    private var _pixelCount :AnimatedFloat;
+    private var _paused = false;
 }
 
 private enum PixelType
@@ -235,8 +334,10 @@ private class PixelDisplay
         switch (block) {
             case Wall: return 0x000000;
             case Space: Assert.fail(); return 0;
-            case Monster: return 0xff0000;
-            case Player: return 0x009900;
+            case Lava: return 0xff0000;
+            case Goomba: return 0x009900;
+            case Player: return 0x000099;
+            case Coin: return 0xffcc00;
         }
     }
 

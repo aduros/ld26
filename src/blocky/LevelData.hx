@@ -3,13 +3,16 @@ package blocky;
 import flambe.asset.AssetPack;
 import flambe.util.Arrays;
 import flambe.util.Assert;
+import flambe.util.Signal1;
+import flambe.util.Value;
 
+using Lambda;
 using StringTools;
 
 enum BlockType
 {
     Space; Wall;
-    Monster;
+    Lava; Goomba; Coin;
 
     Player;
 }
@@ -37,46 +40,52 @@ class LevelData
     public static var GRAVITY = 10;
     public static var TERMINAL_VELOCITY = 20;
 
-    public var width (default, null) :Int;
-    public var height (default, null) :Int;
+    public var width (default, null) :Int = 0;
+    public var height (default, null) :Int = 0;
 
     public var terrain (default, null) :Array<BlockType>;
     public var terrainPriority (default, null) :Array<Float>;
     public var mobs (default, null) :Array<Mob>;
 
     public var player (default, null) :Mob;
+    public var playerAlive (default, null) :Value<Bool>;
+    public var playerCoined (default, null) :Signal1<Mob>;
 
-    public function new (pack :AssetPack, name :String, width :Int, height :Int)
+    public function new (gameCtx :GameContext, name :String)
     {
-        this.width = width;
-        this.height = height;
+        _gameCtx = gameCtx;
         terrain = [];
         mobs = [];
 
         var x = 0, y = 0;
-        var str = pack.getFile(name);
+        var str = gameCtx.pack.getFile(name);
         var ii = 0, ll = str.length;
         while (ii < ll) {
             var code = str.fastCodeAt(ii++);
             if (code != "\n".code) {
                 var block = toBlockType(code);
                 switch (block) {
-                    case Monster, Player:
-                        var mob = addMobile(block, x+0.5, y+0.5);
-                        if (block == Player) {
-                            player = mob;
+                    case Wall, Space:
+                    default:
+                        var tileId = y*width + x;
+                        if (block != Coin || !gameCtx.earnedCoins.has(tileId)) {
+                            var mob = addMobile(block, x+0.5, y+0.5);
+                            if (block == Player) {
+                                player = mob;
+                            }
                         }
                         block = Space;
-                    default:
                 }
                 terrain.push(block);
 
                 ++x;
             } else {
+                width = x;
                 x = 0;
                 ++y;
             }
         }
+        height = y;
 
         var ADJACENCY_PRIORITY = -0.25;
         terrainPriority = [];
@@ -90,11 +99,17 @@ class LevelData
                 terrainPriority[width*y + x] = priority;
             }
         }
+
+        playerAlive = new Value<Bool>(true);
+        playerCoined = new Signal1();
     }
 
     public function update (dt :Float)
     {
-        var adjacent = [-0.5, 0, 0.5];
+        if (_paused) {
+            return;
+        }
+
         for (mob in mobs) {
             if (mob.velX != 0) {
                 mob.x += dt*mob.velX;
@@ -112,10 +127,35 @@ class LevelData
                 checkBottomCollision(mob);
             }
 
-            mob.velY += dt*GRAVITY;
-            if (mob.velY > TERMINAL_VELOCITY) {
-                mob.velY = TERMINAL_VELOCITY;
+            if (mob != player) {
+                var dx = player.x-mob.x, dy = player.y-mob.y;
+                var sqrDist = dx*dx + dy*dy;
+                if (sqrDist < 1) {
+                    onPlayerTouched(mob);
+                }
             }
+
+            if (mob.type != Coin) {
+                mob.velY += dt*GRAVITY;
+                if (mob.velY > TERMINAL_VELOCITY) {
+                    mob.velY = TERMINAL_VELOCITY;
+                }
+            }
+        }
+    }
+
+    private function onPlayerTouched (mob :Mob)
+    {
+        switch (mob.type) {
+            case Lava, Goomba:
+                _paused = true;
+                playerAlive._ = false;
+            case Coin:
+                _paused = true;
+                var coinId = Std.int(mob.y)*width + Std.int(mob.x);
+                _gameCtx.earnedCoins.push(coinId);
+                playerCoined.emit(mob);
+            default:
         }
     }
 
@@ -127,6 +167,11 @@ class LevelData
         var bottom = Math.floor(mob.y+0.5);
         if (collision(left, top+1) || collision(left, bottom-1)) {
             mob.x = left + 1.5;
+
+            switch (mob.type) {
+                case Goomba: mob.velX *= -1;
+                default:
+            }
         }
     }
 
@@ -137,6 +182,11 @@ class LevelData
         var bottom = Math.floor(mob.y+0.5);
         if (collision(right, top+1) || collision(right, bottom-1)) {
             mob.x = right - 0.5;
+
+            switch (mob.type) {
+                case Goomba: mob.velX *= -1;
+                default:
+            }
         }
     }
 
@@ -183,6 +233,11 @@ class LevelData
     public function addMobile (type :BlockType, x :Float, y :Float)
     {
         var mob = new Mob(type, x, y);
+        switch(mob.type) {
+        case Goomba:
+            mob.velX = -3;
+        default:
+        }
         mobs.push(mob);
         return mob;
     }
@@ -193,7 +248,7 @@ class LevelData
             case Space: return 0;
             case Wall: return 1;
             case Player: return 1000;
-            case Monster: return 10;
+            case Lava, Goomba, Coin: return 2;
         }
     }
 
@@ -203,9 +258,14 @@ class LevelData
             case ".".code: return Space;
             case "X".code: return Wall;
             case "@".code: return Player;
-            case "1".code: return Monster;
+            case "1".code: return Lava;
+            case "2".code: return Goomba;
+            case "$".code: return Coin;
         }
         Assert.fail("Unrecognized block", ["code", code]);
         return null;
     }
+
+    private var _gameCtx :GameContext;
+    private var _paused :Bool = false;
 }

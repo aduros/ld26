@@ -18,12 +18,26 @@ class BlockyMain
             .add(new FillSprite(0xf0f0f0, System.stage.width, System.stage.height)));
 
         var loader = System.loadAssetPack(Manifest.build("bootstrap"));
-        loader.get(onLoad);
+        loader.get(function (pack) {
+            restart(new GameContext(pack), true);
+        });
     }
 
-    private static function onLoad (pack :AssetPack)
+    private static function restart (gameCtx :GameContext, showIntro :Bool)
     {
-        var level = new LevelData(pack, "level1.txt", 20, 7);
-        System.root.add(new LevelDisplay(level, 20));
+        var level = new LevelData(gameCtx, "level1.txt");
+
+        var game = new Entity();
+        var display = new LevelDisplay(gameCtx, level, showIntro);
+        display.gameOver.connect(function (won) {
+            game.dispose();
+            if (won) {
+                gameCtx.maxPixels -= 1;
+            }
+            restart(gameCtx, won);
+        });
+        game.add(display);
+
+        System.root.addChild(game);
     }
 }
