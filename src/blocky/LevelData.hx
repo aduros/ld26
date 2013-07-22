@@ -58,7 +58,7 @@ class LevelData
         mobs = [];
 
         var x = 0, y = 0;
-        var str = gameCtx.pack.getFile(name);
+        var str = gameCtx.pack.getFile(name).toString();
         var ii = 0, ll = str.length;
         while (ii < ll) {
             var code = str.fastCodeAt(ii++);
