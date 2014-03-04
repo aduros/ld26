@@ -18,7 +18,7 @@ class BlockyMain
         System.root.addChild(new Entity()
             .add(new FillSprite(0xf0f0f0, System.stage.width, System.stage.height)));
 
-        var loader = System.loadAssetPack(Manifest.build("bootstrap"));
+        var loader = System.loadAssetPack(Manifest.fromAssets("bootstrap"));
         loader.get(function (pack) {
             var gameCtx = new GameContext(pack, System.root);
             var introScene = TextScene.show(gameCtx, "There Are Only 13 Squares", "Arrow keys\nFind all 10 coins");
